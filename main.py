@@ -4,8 +4,9 @@ import pyworld as pw
 import numpy as np
 import os
 import torch
+from torch.utils.data import TensorDataset, DataLoader
 import func
-
+from sklearn.model_selection import train_test_split
 
 
 
@@ -26,8 +27,21 @@ ap = pw.d4c(data, f0, t, fs)  # 非周期性指標の抽出
 """
 
 
-WAVEsp = np.array(func.wavesp("."))
-X_train = torch.from_numpy(WAVEsp)
-print(X_train)
+tsuchiya = np.array(func.wavedata("."))#tsuchiya = np.array(func.wavedata("tsuchiya_normal"))
+uemura = np.array(func.wavedata("."))#uemura = np.array(func.wavedata("uemura_normal"))
+
+X_train, X_test, y_train, y_test = train_test_split(
+    tsuchiya, uemura, test_size=1/5, random_state=0)
+
+X_train = torch.Tensor(X_train)
+X_test = torch.Tensor(X_test)
+y_train = torch.Tensor(y_train)
+y_test = torch.Tensor(y_test)
+
+ds_train = TensorDataset(X_train, y_train)
+ds_test = TensorDataset(X_test, y_test)
+
+loader_train = DataLoader(ds_train, batch_size=64, shuffle=True)
+loader_test = DataLoader(ds_test, shuffle=False)
 #print(np.shape(spec))
 #print(np.shape(f0))

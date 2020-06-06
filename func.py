@@ -13,8 +13,8 @@ def lin(x, dBref):
 
 
 # wavディレクトリを指定するとspをarrayにして返す関数
-def wavesp(path):
-    WAVEsp = []
+def wavedata(path):
+    WAVEdata = []
     WAV_FILE = [i for i in os.listdir(path=path) if i[-3:]=="wav"]
     for i, name in enumerate(WAV_FILE):
         print(i, name)
@@ -28,6 +28,5 @@ def wavesp(path):
         f0 = np.array([np.concatenate([f0,np.zeros(3293-len(f0))])]).T
         #spec = lin(spec, 2e-5)
         x = np.concatenate([f0,spec],1)
-        WAVEsp.append(x)
-    WAVEsp = np.array(WAVEsp)
-    return WAVEsp
+        WAVEdata.append(x)
+    return np.array(WAVEdata)
