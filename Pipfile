@@ -10,6 +10,8 @@ pyworld = "*"
 scipy = "*"
 matplotlib = "*"
 opencv-contrib-python = "*"
+torch = "*"
+sklearn = "*"
 
 [requires]
 python_version = "3.7"
