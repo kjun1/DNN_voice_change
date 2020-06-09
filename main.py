@@ -41,12 +41,12 @@ y_test = torch.Tensor(y_test)
 ds_train = TensorDataset(X_train, y_train)
 ds_test = TensorDataset(X_test, y_test)
 
-loader_train = DataLoader(ds_train,batch_size=2, shuffle=True)
+loader_train = DataLoader(ds_train,batch_size=32, shuffle=True)
 loader_test = DataLoader(ds_test, shuffle=False)
 #print(np.shape(spec))
 #print(np.shape(f0))
 
-
+print(X_train.size(),y_test.size())
 
 from torch import nn,optim
 import func
@@ -62,7 +62,7 @@ model.add_module('fc3', nn.Linear(100, 1026))
 print(model)
 
 # 誤差関数の設定
-loss_fn = nn.CrossEntropyLoss()  # 変数名にはcriterionも使われる
+loss_fn = nn.MSELoss()  # 変数名にはcriterionも使われる
 
 # 重みを学習する際の最適化手法の選択
 optimizer = optim.Adam(model.parameters(), lr=0.01)
@@ -76,7 +76,8 @@ def train(epoch):
         optimizer.zero_grad()  # 一度計算された勾配結果を0にリセット
 
         output = model(data)  # 入力dataをinputし、出力を求める
-        print(output)
+        #print(output.size())
+        #print(target.size())
         loss = loss_fn(output, target)  # 出力と訓練データの正解との誤差を求める
         loss.backward()  # 誤差のバックプロパゲーションを求める
         optimizer.step()  # バックプロパゲーションの値で重みを更新する
@@ -102,5 +103,5 @@ def test():
     print('\nテストデータの正解率: {}/{} ({:.0f}%)\n'.format(correct,
                                                    data_num, 100. * correct / data_num))
 #[print(i) for i in loader_train]
-for epoch in range(3):
+for epoch in range(100):
     train(epoch)

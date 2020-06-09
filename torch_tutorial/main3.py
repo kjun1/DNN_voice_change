@@ -1,5 +1,13 @@
 import torch
-from torch import nn, optim
+from torch import nn,optim
+net = nn.Sequential(
+    nn.Linear(64,32),
+    nn.ReLU(),
+    nn.Linear(32,16),
+    nn.ReLU(),
+    nn.Linear(16,10)
+)
+
 from sklearn.datasets import  load_digits
 
 digits = load_digits()
@@ -9,12 +17,10 @@ y = digits.target
 
 X = torch.tensor(X, dtype=torch.float32)
 y = torch.tensor(y, dtype=torch.int64)
-#print(X.size(),y.size())
-net = nn.Linear(X.size()[1],10)
-
+print(X.size(),y.size())
 loss_fn = nn.CrossEntropyLoss()
 
-optimizer = optim.SGD(net.parameters(),lr=0.01)
+optimizer = optim.Adam(net.parameters())
 
 losses=[]
 
@@ -22,7 +28,7 @@ for epoc in range(100):
     optimizer.zero_grad()
 
     y_pred = net(X)
-    print(y_pred.size(),y.size())
+
     loss = loss_fn(y_pred, y)
     loss.backward()
 

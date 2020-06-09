@@ -2,6 +2,7 @@ from scipy.io import wavfile
 import os
 import numpy as np
 import pyworld as pw
+import torch
 
 def db(x, dBref):
     y = 20 * np.log10(x / dBref)                      # リニア値をdB値に変換
@@ -28,5 +29,6 @@ def wavedata(path):
         f0 = np.array([np.concatenate([f0,np.zeros(3293-len(f0))])]).T
         #spec = lin(spec, 2e-5)
         x = np.concatenate([f0,spec],1)
-        WAVEdata.append(x)
+        [WAVEdata.append(i) for i in x]
+        #WAVEdata.append(x)
     return WAVEdata

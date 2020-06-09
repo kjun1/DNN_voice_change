@@ -21,7 +21,7 @@ for epoc in range(100):
     optimizer.zero_grad()
 
     y_pred = net(X)
-
+    print(y_pred.size(), y.size())
     loss = loss_fn(y_pred.view_as(y),y)
     loss.backward()
 
