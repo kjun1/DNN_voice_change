@@ -29,4 +29,4 @@ def wavedata(path):
         #spec = lin(spec, 2e-5)
         x = np.concatenate([f0,spec],1)
         WAVEdata.append(x)
-    return np.array(WAVEdata)
+    return WAVEdata
