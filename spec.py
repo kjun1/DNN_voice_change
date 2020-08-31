@@ -1,6 +1,9 @@
 from scipy.io import wavfile
 from scipy.stats import zscore
+<<<<<<< HEAD
 from scipy import interpolate
+=======
+>>>>>>> 705e15548ae54cd033b7aa91c52b348e8797e8b3
 import pyworld as pw
 import numpy as np
 import pysptk
@@ -12,6 +15,7 @@ from torch import optim
 import torch.nn as nn
 import torch.nn.functional as F
 
+<<<<<<< HEAD
 def modifiedsp(sp,sp_rate,fs): # スペクトル包絡の変換
     fft_size = (len(sp[1])-1)*2 # こいつ何？
     w = [i*fs/fft_size for i in range(fft_size)]
@@ -26,6 +30,8 @@ def modifiedsp(sp,sp_rate,fs): # スペクトル包絡の変換
         mod_sp[i] = (np.exp(tmp2[:int(fft_size/2+1)])) # さっき変換したspの一部(tmp2)を新しいspにぶち込む
 
     return mod_sp
+=======
+>>>>>>> 705e15548ae54cd033b7aa91c52b348e8797e8b3
 
 fs, data = wavfile.read("tsuchiya_normal_001.wav")
 data = data.astype(np.float)  # WORLDはfloat前提のコードになっているのでfloat型にしておく
@@ -132,6 +138,7 @@ for i in range(15):
 
 model.eval()  # ネットワークを推論モードに切り替える
 
+<<<<<<< HEAD
 fs, data = wavfile.read("tsuchiya_normal_001.wav")
 data = data.astype(np.float)  # WORLDはfloat前提のコードになっているのでfloat型にしておく
 
@@ -149,6 +156,9 @@ mcep = pysptk.sp2mc(sp, 39, alpha)
 for i in range(40):
     mcep[:, i] = zscore(mcep[:, i])
 """
+=======
+
+>>>>>>> 705e15548ae54cd033b7aa91c52b348e8797e8b3
 # データローダーから1ミニバッチずつ取り出して計算する
 for i in range(len(mcep[0])):
     mcep[i, :] = model(torch.Tensor(mcep[i, :]))[0].to('cpu').detach().numpy().copy()  # 入力dataをinputし、出力を求める
