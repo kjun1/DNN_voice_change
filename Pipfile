@@ -12,6 +12,8 @@ matplotlib = "*"
 opencv-contrib-python = "*"
 torch = "*"
 sklearn = "*"
+pysptk = "*"
+librosa = "*"
 
 [requires]
 python_version = "3.7"
