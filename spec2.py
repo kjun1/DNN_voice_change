@@ -11,6 +11,7 @@ from torch.utils.data import TensorDataset, DataLoader
 from torch import optim
 import torch.nn as nn
 import torch.nn.functional as F
+import os
 
 def modifiedsp(sp,sp_rate,fs): # スペクトル包絡の変換
     fft_size = (len(sp[1])-1)*2 # こいつ何？
@@ -26,26 +27,37 @@ def modifiedsp(sp,sp_rate,fs): # スペクトル包絡の変換
         mod_sp[i] = (np.exp(tmp2[:int(fft_size/2+1)])) # さっき変換したspの一部(tmp2)を新しいspにぶち込む
 
     return mod_sp
+#wav_file = ["tsuchiya_normal/"+i for i in os.listdir(path="tsuchiya_normal") if i[-3:]=="wav"]
+wav_file = ["tsuchiya_normal_001.wav"]
+for i , name in enumerate(wav_file):
+    fs, data = wavfile.read(name)
+    data = data.astype(np.float)  # WORLDはfloat前提のコードになっているのでfloat型にしておく
 
-fs, data = wavfile.read("tsuchiya_normal_001.wav")
-data = data.astype(np.float)  # WORLDはfloat前提のコードになっているのでfloat型にしておく
 
+    f0, t = pw.dio(data, fs)  # 基本周波数の抽出
+    f0 = pw.stonemask(data, f0, t, fs)  # refinement
+    sp = pw.cheaptrick(data, f0, t, fs)  # スペクトル包絡の抽出
+    ap = pw.d4c(data, f0, t, fs)  # 非周期性指標の抽出)
 
-f0, t = pw.dio(data, fs)  # 基本周波数の抽出
-f0 = pw.stonemask(data, f0, t, fs)  # refinement
-sp = pw.cheaptrick(data, f0, t, fs)  # スペクトル包絡の抽出
-ap = pw.d4c(data, f0, t, fs)  # 非周期性指標の抽出)
+    #[print(sp[i]) for i in range(100)]
+    alpha = 0.46
+    mcep = pysptk.sp2mc(sp, 39, alpha)
+    #print(mcep.shape)
+    #print(f0.shape)
+    a = np.block([mcep, f0.reshape(len(f0),1)])
+    if i != 0:
+        d = np.concatenate([d, a], 0)
+    else:
+        d = a
+    print(i)
+    print(d.shape)
 
-#[print(sp[i]) for i in range(100)]
-alpha = 0.46
-mcep = pysptk.sp2mc(sp, 39, alpha)
-#print(mcep.shape)
 """
 for i in range(40):
     mcep[:, i] = zscore(mcep[:, i])
 """
 X_train, X_test, y_train, y_test = train_test_split(
-    mcep, mcep, test_size=1/5, random_state=0)
+    d, d, test_size=1/5, random_state=0)
 
 X_train = torch.Tensor(X_train)
 X_test = torch.Tensor(X_test)
@@ -65,14 +77,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class VAE(nn.Module):
     def __init__(self, z_dim):
       super(VAE, self).__init__()
-      self.dense_enc1 = nn.Linear(40, 256)
+      self.dense_enc1 = nn.Linear(41, 256)
       self.dense_enc2 = nn.Linear(256,128)
       self.dense_encmean = nn.Linear(128, z_dim)
       self.dense_encvar = nn.Linear(128, z_dim)
 
       self.dense_dec1 = nn.Linear(z_dim, 128)
       self.dense_dec2 = nn.Linear(128, 256)
-      self.dense_dec3 = nn.Linear(256, 40)
+      self.dense_dec3 = nn.Linear(256, 41)
 
     def _encoder(self, x):
       x = F.relu(self.dense_enc1(x))
@@ -113,17 +125,18 @@ print(VAE)
 
 
 
-model = VAE(64).to(device)
+model = VAE(2).to(device)
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 model.train()
-for i in range(15):
+for i in range(1):
   losses = []
   for x, t in dataloader_train:
+      print(x,t)
       x = x.to(device)
       model.zero_grad()
       y = model(x)
       loss = model.loss(x)
-      print("loss is "+str(loss))
+      #print("loss is "+str(loss))
       loss.backward()
       optimizer.step()
       losses.append(loss.cpu().detach().numpy())
@@ -132,7 +145,7 @@ for i in range(15):
 
 model.eval()  # ネットワークを推論モードに切り替える
 
-fs, data = wavfile.read("tsuchiya_normal_001.wav")
+fs, data = wavfile.read("tsuchiya_normal_002.wav")
 data = data.astype(np.float)  # WORLDはfloat前提のコードになっているのでfloat型にしておく
 
 
@@ -145,17 +158,27 @@ ap = pw.d4c(data, f0, t, fs)  # 非周期性指標の抽出)
 alpha = 0.46
 mcep = pysptk.sp2mc(sp, 39, alpha)
 #print(mcep.shape)
+d = np.block([mcep, f0.reshape(len(f0),1)])
 """
 for i in range(40):
     mcep[:, i] = zscore(mcep[:, i])
 """
 # データローダーから1ミニバッチずつ取り出して計算する
 for i in range(len(mcep[0])):
-    mcep[i, :] = model(torch.Tensor(mcep[i, :]))[0].to('cpu').detach().numpy().copy()  # 入力dataをinputし、出力を求める
+    d[i, :] = model(torch.Tensor(d[i, :]))[0].to('cpu').detach().numpy().copy()  # 入力dataをinputし、出力を求める
 
+mcep = d[:,:-1]
+f1 = d[:,-1]
+for i in range(len(f0)):
+    print(f0[i],f1[i])
 
 sp_from_mcep = pysptk.mc2sp(mcep, alpha, fftlen = 2048)
+#syn_mcep = pw.synthesize(f1, sp_from_mcep, ap, fs)
+#wavfile.write('./kakunin.wav',fs,syn_mcep.astype(np.int16)) #int16にしないと音割れする
+
 """
+sp_from_mcep = pysptk.mc2sp(mcep, alpha, fftlen = 2048)
+
 synthesized = pw.synthesize(f0, sp, ap, fs)
 wavfile.write('./world.wav',fs,synthesized.astype(np.int16)) #int16にしないと音割れする
 
