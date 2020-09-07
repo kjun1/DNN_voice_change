@@ -27,7 +27,7 @@ def modifiedsp(sp,sp_rate,fs): # スペクトル包絡の変換
 
     return mod_sp
 
-fs, data = wavfile.read("tsuchiya_normal_001.wav")
+fs, data = wavfile.read("../wav_data/tsuchiya_normal/tsuchiya_normal_001.wav")
 data = data.astype(np.float)  # WORLDはfloat前提のコードになっているのでfloat型にしておく
 
 
@@ -37,8 +37,8 @@ sp = pw.cheaptrick(data, f0, t, fs)  # スペクトル包絡の抽出
 ap = pw.d4c(data, f0, t, fs)  # 非周期性指標の抽出)
 
 #[print(sp[i]) for i in range(100)]
-alpha = 0.46
-mcep = pysptk.sp2mc(sp, 39, alpha)
+alpha = 0.46 #なんかよくわからん係数
+mcep = pysptk.sp2mc(sp, 39, alpha) # mcepの抽出
 #print(mcep.shape)
 """
 for i in range(40):
