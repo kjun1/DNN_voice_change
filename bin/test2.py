@@ -66,22 +66,26 @@ d = d/max
 with open("aaa.binaryfile", "wb") as web:
     pickle.dump([d,min,max], web)
 """
-with open("aaa.binaryfile", "rb") as web:
-    d,min,max = pickle.load(web)
+with open("tsuchiya_normal.binaryfile", "rb") as web:
+    d,min,max,state = pickle.load(web)
 
 """
 for i in range(40):
     mcep[:, i] = zscore(mcep[:, i])
 """
+p = [[1,0]] * len(d)
 
 X_train, X_test = train_test_split(
     d, test_size=1/5, random_state=0) #random_stateは乱数シードの固定
+y_train, y_test = train_test_split(
+    p, test_size=1/5, random_state=0) #random_stateは乱数シードの固定
 
 X_train = torch.Tensor(X_train) # Tensorにする
 X_test = torch.Tensor(X_test) # 上同様
-
-ds_train = TensorDataset(X_train, X_train) # 入力データと教師データをまとめる(VAEなので同じデータを固めてる)
-ds_test = TensorDataset(X_test, X_test) # 上同様
+y_train = torch.Tensor(y_train) # Tensorにする
+y_test = torch.Tensor(y_test) # 上同様
+ds_train = TensorDataset(X_train, y_train) # 入力データと教師データをまとめる(VAEなので同じデータを固めてる)
+ds_test = TensorDataset(X_test, y_test) # 上同様
 #print(ds_train[0][0])
 
 dataloader_train = DataLoader(ds_train,batch_size=1024, shuffle=True)
@@ -100,7 +104,7 @@ class VAE(nn.Module):
       self.dense_encmean = nn.Linear(128, z_dim)
       self.dense_encvar = nn.Linear(128, z_dim)
 
-      self.dense_dec1 = nn.Linear(z_dim, 128)
+      self.dense_dec1 = nn.Linear(z_dim+2, 128)
       self.dense_dec2 = nn.Linear(128, 256)
       self.dense_dec3 = nn.Linear(256, 40)
 
@@ -116,18 +120,22 @@ class VAE(nn.Module):
       return mean + torch.sqrt(var) * epsilon
 
     def _decoder(self, z):
+      p = torch.Tensor([[1,0]]*len(z))
+      #print(p.shape)
+      z = torch.cat([z,p], dim=1)
+      #print(z)
       x = F.relu(self.dense_dec1(z))
       x = F.relu(self.dense_dec2(x))
       x = F.sigmoid(self.dense_dec3(x))
       return x
 
-    def forward(self, x):
+    def forward(self, x, state):
       mean, var = self._encoder(x)
       z = self._sample_z(mean, var)
       x = self._decoder(z)
       return x, z
 
-    def loss(self, x):
+    def loss(self, x, state):
       mean, var = self._encoder(x)
       delta = 1e-7
       KL = -0.5 * torch.mean(torch.sum(1 + torch.log(var + delta) - mean**2 - var))
@@ -155,8 +163,8 @@ for i in range(20):
       #print(x,t)
       x = x.to(device)
       model.zero_grad()
-      y = model(x)
-      loss = model.loss(x)
+      y = model(x,0)
+      loss = model.loss(x,0)
       #print("loss is "+str(loss))
       loss.backward()
       optimizer.step()

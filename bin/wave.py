@@ -6,12 +6,12 @@ import numpy as np
 import pysptk
 
 print("input name")
-name = "tsuchiya_normal"
+name = "uemura_normal"
 path = "../../wav_data/"+name
 
 wav_file = ["../../wav_data/"+name+"/"+i for i in os.listdir(path="../../wav_data/"+name) if i[-3:]=="wav"]
-for i , name in enumerate(wav_file):
-    fs, data = wavfile.read(name)
+for i , n in enumerate(wav_file):
+    fs, data = wavfile.read(n)
     data = data.astype(np.float)  # WORLDはfloat前提のコードになっているのでfloat型にしておく
 
 
@@ -42,4 +42,4 @@ max = np.max(d)
 d = d/max
 
 with open(name+".binaryfile", "wb") as web:
-    pickle.dump([d,min,max], web)
+    pickle.dump([d,min,max,1], web)
