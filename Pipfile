@@ -6,14 +6,10 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-pyworld = "*"
-scipy = "*"
-matplotlib = "*"
-opencv-contrib-python = "*"
-torch = "*"
-sklearn = "*"
 pysptk = "*"
-librosa = "*"
+sklearn = "*"
+torch = "*"
+pyworld = "*"
 
 [requires]
 python_version = "3.7"

@@ -27,8 +27,7 @@ def modifiedsp(sp,sp_rate,fs): # スペクトル包絡の変換
         mod_sp[i] = (np.exp(tmp2[:int(fft_size/2+1)])) # さっき変換したspの一部(tmp2)を新しいspにぶち込む
 
     return mod_sp
-#wav_file = ["tsuchiya_normal/"+i for i in os.listdir(path="tsuchiya_normal") if i[-3:]=="wav"]
-wav_file = ["tsuchiya_normal_001.wav"]
+wav_file = ["../wav_data/tsuchiya_normal/"+i for i in os.listdir(path="../wav_data/tsuchiya_normal") if i[-3:]=="wav"]
 for i , name in enumerate(wav_file):
     fs, data = wavfile.read(name)
     data = data.astype(np.float)  # WORLDはfloat前提のコードになっているのでfloat型にしておく
@@ -56,19 +55,20 @@ for i , name in enumerate(wav_file):
 for i in range(40):
     mcep[:, i] = zscore(mcep[:, i])
 """
-X_train, X_test, y_train, y_test = train_test_split(
-    d, d, test_size=1/5, random_state=0)
 
-X_train = torch.Tensor(X_train)
-X_test = torch.Tensor(X_test)
-y_train = torch.Tensor(y_train)
-y_test = torch.Tensor(y_test)
+X_train, X_test = train_test_split(
+    mcep, test_size=1/5, random_state=0) #random_stateは乱数シードの固定
 
-ds_train = TensorDataset(X_train, y_train)
-ds_test = TensorDataset(X_test, y_test)
+X_train = torch.Tensor(X_train) # Tensorにする
+X_test = torch.Tensor(X_test) # 上同様
 
-dataloader_train = DataLoader(ds_train,batch_size=16, shuffle=True)
+ds_train = TensorDataset(X_train, X_train) # 入力データと教師データをまとめる(VAEなので同じデータを固めてる)
+ds_test = TensorDataset(X_test, X_test) # 上同様
+#print(ds_train[0][0])
+
+dataloader_train = DataLoader(ds_train,batch_size=64, shuffle=True)
 dataloader_test = DataLoader(ds_test, shuffle=False)
+
 
 
 
@@ -125,10 +125,10 @@ print(VAE)
 
 
 
-model = VAE(2).to(device)
+model = VAE(64).to(device)
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 model.train()
-for i in range(1):
+for i in range(100):
   losses = []
   for x, t in dataloader_train:
       print(x,t)

@@ -40,27 +40,28 @@ ap = pw.d4c(data, f0, t, fs)  # 非周期性指標の抽出)
 alpha = 0.46 #なんかよくわからん係数
 mcep = pysptk.sp2mc(sp, 39, alpha) # mcepの抽出
 #print(mcep.shape)
+mcep = np.abs(mcep/np.max(mcep))
 """
 for i in range(40):
     mcep[:, i] = zscore(mcep[:, i])
 """
-X_train, X_test, y_train, y_test = train_test_split(
-    mcep, mcep, test_size=1/5, random_state=0)
+X_train, X_test = train_test_split(
+    mcep, test_size=1/5, random_state=0) #random_stateは乱数シードの固定
 
-X_train = torch.Tensor(X_train)
-X_test = torch.Tensor(X_test)
-y_train = torch.Tensor(y_train)
-y_test = torch.Tensor(y_test)
+X_train = torch.Tensor(X_train) # Tensorにする
+X_test = torch.Tensor(X_test) # 上同様
 
-ds_train = TensorDataset(X_train, y_train)
-ds_test = TensorDataset(X_test, y_test)
+ds_train = TensorDataset(X_train, X_train) # 入力データと教師データをまとめる(VAEなので同じデータを固めてる)
+ds_test = TensorDataset(X_test, X_test) # 上同様
+#print(ds_train[0][0])
 
-dataloader_train = DataLoader(ds_train,batch_size=16, shuffle=True)
+dataloader_train = DataLoader(ds_train,batch_size=64, shuffle=True)
 dataloader_test = DataLoader(ds_test, shuffle=False)
 
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # GPUが使える場合は使う
 
 class VAE(nn.Module):
     def __init__(self, z_dim):
@@ -100,10 +101,14 @@ class VAE(nn.Module):
     def loss(self, x):
       mean, var = self._encoder(x)
       delta = 1e-7
-      KL = -0.5 * torch.mean(torch.sum(1 + torch.log(var + delta) - mean**2 - var))
+      KL = -0.5 * torch.mean(torch.sum(1 + torch.log(var) - mean**2 - var))
+      #print(torch.sum(1 + torch.log(var) - mean**2 - var))
       z = self._sample_z(mean, var)
       y = self._decoder(z)
+
       reconstruction = torch.mean(torch.sum(x * torch.log(y+delta) + (1 - x) * torch.log(1 - y+delta)))
+      #print(KL)
+      #print(reconstruction)
       lower_bound = [-KL, reconstruction]
       return -sum(lower_bound)
 
@@ -116,14 +121,14 @@ print(VAE)
 model = VAE(64).to(device)
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 model.train()
-for i in range(15):
+for i in range(100):
   losses = []
   for x, t in dataloader_train:
       x = x.to(device)
       model.zero_grad()
       y = model(x)
       loss = model.loss(x)
-      print("loss is "+str(loss))
+      #print("loss is "+str(loss))
       loss.backward()
       optimizer.step()
       losses.append(loss.cpu().detach().numpy())
@@ -132,7 +137,7 @@ for i in range(15):
 
 model.eval()  # ネットワークを推論モードに切り替える
 
-fs, data = wavfile.read("tsuchiya_normal_001.wav")
+#fs, data = wavfile.read("tsuchiya_normal_001.wav")
 data = data.astype(np.float)  # WORLDはfloat前提のコードになっているのでfloat型にしておく
 
 
@@ -150,11 +155,24 @@ for i in range(40):
     mcep[:, i] = zscore(mcep[:, i])
 """
 # データローダーから1ミニバッチずつ取り出して計算する
+print(mcep[200])
+p = torch.Tensor(mcep[200, :])
+p = model.dense_enc1(p)
+p = model.dense_enc2(p)
+p_var = F.softplus(model.dense_encvar(p))
+p_mean = model.dense_encmean(p)
+ep = torch.randn(p_mean.shape).to(device)
+p_z = model._sample_z(p_mean,p_var)
+
+#print(p_z)
+print(model._decoder(p_z))
+"""
 for i in range(len(mcep[0])):
     mcep[i, :] = model(torch.Tensor(mcep[i, :]))[0].to('cpu').detach().numpy().copy()  # 入力dataをinputし、出力を求める
 
 
 sp_from_mcep = pysptk.mc2sp(mcep, alpha, fftlen = 2048)
+"""
 """
 synthesized = pw.synthesize(f0, sp, ap, fs)
 wavfile.write('./world.wav',fs,synthesized.astype(np.int16)) #int16にしないと音割れする
