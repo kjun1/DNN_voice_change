@@ -73,7 +73,7 @@ with open("tsuchiya_normal.binaryfile", "rb") as web:
 for i in range(40):
     mcep[:, i] = zscore(mcep[:, i])
 """
-p = [[1,0]] * len(d)
+p = [[state,abs(1-state)]] * len(d)
 
 X_train, X_test = train_test_split(
     d, test_size=1/5, random_state=0) #random_stateは乱数シードの固定
@@ -120,7 +120,7 @@ class VAE(nn.Module):
       return mean + torch.sqrt(var) * epsilon
 
     def _decoder(self, z):
-      p = torch.Tensor([[1,0]]*len(z))
+      p = torch.Tensor([[1,0]]*len(z))　# 話者情報入れる部分
       #print(p.shape)
       z = torch.cat([z,p], dim=1)
       #print(z)
