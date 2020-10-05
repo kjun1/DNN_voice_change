@@ -10,6 +10,11 @@ pysptk = "*"
 sklearn = "*"
 torch = "*"
 pyworld = "*"
+torchvision = "*"
+pillow = "*"
+tqdm = "*"
+matplotlib = "*"
+jupyterlab = "*"
 
 [requires]
 python_version = "3.7"

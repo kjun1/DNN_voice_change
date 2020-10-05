@@ -69,6 +69,7 @@ with open("aaa.binaryfile", "wb") as web:
 with open("tsuchiya_normal.binaryfile", "rb") as web:
     d,min,max,state = pickle.load(web)
 
+
 """
 for i in range(40):
     mcep[:, i] = zscore(mcep[:, i])
@@ -93,8 +94,10 @@ dataloader_test = DataLoader(ds_test, shuffle=False)
 
 
 
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#print(torch.cuda.is_available())
+#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
+print(device)
 
 class VAE(nn.Module):
     def __init__(self, z_dim):
@@ -119,8 +122,9 @@ class VAE(nn.Module):
       epsilon = torch.randn(mean.shape).to(device)
       return mean + torch.sqrt(var) * epsilon
 
-    def _decoder(self, z):
-      p = torch.Tensor([[1,0]]*len(z))　# 話者情報入れる部分
+    def _decoder(self, z, t):
+      #p = torch.Tensor([[1,0]]*len(z)) # 話者情報入れる部分
+      p = t
       #print(p.shape)
       z = torch.cat([z,p], dim=1)
       #print(z)
@@ -129,19 +133,19 @@ class VAE(nn.Module):
       x = F.sigmoid(self.dense_dec3(x))
       return x
 
-    def forward(self, x, state):
+    def forward(self, x, t):
       mean, var = self._encoder(x)
       z = self._sample_z(mean, var)
-      x = self._decoder(z)
+      x = self._decoder(z, t)
       return x, z
 
-    def loss(self, x, state):
+    def loss(self, x, t):
       mean, var = self._encoder(x)
       delta = 1e-7
       KL = -0.5 * torch.mean(torch.sum(1 + torch.log(var + delta) - mean**2 - var))
       #print(KL)
       z = self._sample_z(mean, var)
-      y = self._decoder(z)
+      y = self._decoder(z, t)
       #reconstruction = torch.mean(torch.sum((x-y)**2))
       reconstruction = torch.mean(torch.sum(x * torch.log(y) + (1 - x) * torch.log(1 - y)))
       #print(reconstruction)
@@ -162,9 +166,10 @@ for i in range(20):
   for x, t in dataloader_train:
       #print(x,t)
       x = x.to(device)
+      t = t.to(device)
       model.zero_grad()
-      y = model(x,0)
-      loss = model.loss(x,0)
+      y = model(x,t)
+      loss = model.loss(x,t)
       #print("loss is "+str(loss))
       loss.backward()
       optimizer.step()
