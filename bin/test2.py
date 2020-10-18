@@ -67,20 +67,26 @@ with open("aaa.binaryfile", "wb") as web:
     pickle.dump([d,min,max], web)
 """
 with open("tsuchiya_normal.binaryfile", "rb") as web:
-    d,min,max,state = pickle.load(web)
+    d_t,min_t,max_t,state_t = pickle.load(web)
 
+with open("uemura_normal.binaryfile", "rb") as web:
+    d_u,min_u,max_u,state_u = pickle.load(web)
+
+d = np.concatenate([d_t, d_u], 0)
+p = [[state_t,abs(1-state_t)]] * len(d_t) + [[state_u,abs(1-state_u)]] * len(d_u)
 
 """
 for i in range(40):
     mcep[:, i] = zscore(mcep[:, i])
 """
-p = [[state,abs(1-state)]] * len(d)
+
 
 X_train, X_test = train_test_split(
     d, test_size=1/5, random_state=0) #random_stateは乱数シードの固定
 y_train, y_test = train_test_split(
     p, test_size=1/5, random_state=0) #random_stateは乱数シードの固定
-
+X_train = d
+y_train = p
 X_train = torch.Tensor(X_train) # Tensorにする
 X_test = torch.Tensor(X_test) # 上同様
 y_train = torch.Tensor(y_train) # Tensorにする
@@ -126,8 +132,9 @@ class VAE(nn.Module):
       #p = torch.Tensor([[1,0]]*len(z)) # 話者情報入れる部分
       p = t
       #print(p.shape)
+      #print(z.shape)
       z = torch.cat([z,p], dim=1)
-      #print(z)
+      #print(z.shape)
       x = F.relu(self.dense_dec1(z))
       x = F.relu(self.dense_dec2(x))
       x = F.sigmoid(self.dense_dec3(x))
@@ -179,7 +186,7 @@ for i in range(20):
 
 model.eval()  # ネットワークを推論モードに切り替える
 
-fs, data = wavfile.read("../wav_data/uemura_normal/uemura_normal_001.wav")
+fs, data = wavfile.read("../../dataset/wav_data/uemura_normal/uemura_normal_001.wav")
 data = data.astype(np.float)  # WORLDはfloat前提のコードになっているのでfloat型にしておく
 
 
@@ -191,7 +198,7 @@ ap = pw.d4c(data, f0, t, fs)  # 非周期性指標の抽出)
 #[print(sp[i]) for i in range(100)]
 alpha = 0.46
 mcep = pysptk.sp2mc(sp, 39, alpha)
-mcep = (mcep - min)/max
+mcep = (mcep - min_u)/max_u
 """
 #print(mcep.shape)
 d = np.block([mcep, f0.reshape(len(f0),1)])
@@ -209,9 +216,10 @@ for i in range(len(f0)):
     print(f0[i],f1[i])
 """
 for i in range(len(mcep[0])):
-    mcep[i, :] = model(torch.Tensor(mcep[i, :]))[0].to('cpu').detach().numpy().copy()  # 入力dataをinputし、出力を求める
+    #print(torch.Tensor([[state_u,abs(1-state_u)]]).shape)
+    mcep[i, :] = model(torch.Tensor([mcep[i, :]]),torch.Tensor([[state_u,abs(1-state_u)]]))[0].to('cpu').detach().numpy().copy()  # 入力dataをinputし、出力を求める
 
-sp_from_mcep = pysptk.mc2sp(mcep*max+min, alpha, fftlen = 2048)
+sp_from_mcep = pysptk.mc2sp(mcep*max_u+min_u, alpha, fftlen = 2048)
 syn_mcep = pw.synthesize(f0, sp_from_mcep, ap, fs)
 wavfile.write('./kakunin.wav',fs,syn_mcep.astype(np.int16)) #int16にしないと音割れする
 

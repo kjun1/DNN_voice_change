@@ -20,26 +20,10 @@ for i , n in enumerate(wav_file):
     sp = pw.cheaptrick(data, f0, t, fs)  # スペクトル包絡の抽出
     ap = pw.d4c(data, f0, t, fs)  # 非周期性指標の抽出)
 
-    #[print(sp[i]) for i in range(100)]
-    alpha = 0.46
-    mcep = pysptk.sp2mc(sp, 39, alpha)
-    #print(mcep.shape)
-    #print(f0.shape)
-    #a = np.block([mcep, f0.reshape(len(f0),1)])
-    a = mcep
     if i != 0:
-        d = np.concatenate([d, a], 0)
+        d = np.concatenate([d, sp], 0)
+        fd = np.concatenate([fd, f0], 0)
     else:
-        d = a
-    print(i)
-    print(d.shape)
-
-
-
-min = np.min(d)
-d = d - min
-max = np.max(d)
-d = d/max
-
-with open(name+".binaryfile", "wb") as web:
-    pickle.dump([d,min,max,1], web)
+        d = sp
+        fd = f0
+    
