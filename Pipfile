@@ -15,6 +15,9 @@ pillow = "*"
 tqdm = "*"
 matplotlib = "*"
 jupyterlab = "*"
+sidekit = "*"
+pydub = "*"
+openpyxl = "*"
 
 [requires]
 python_version = "3.7"
