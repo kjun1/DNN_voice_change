@@ -1,3 +1,8 @@
+'''
+mfccをdumpにする
+'''
+
+
 import pickle
 import os
 from scipy.io import wavfile
